@@ -33,7 +33,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Test.cs" />
+    <Compile Include="FlatStorageTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

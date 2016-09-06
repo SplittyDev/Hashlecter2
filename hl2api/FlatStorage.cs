@@ -1,16 +1,17 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 namespace hl2api {
-    public class Cache : IDisposable {
+    public class FlatStorage : IEnumerable<string>, IDisposable {
 
         /// <summary>
         /// The max cached lines.
         /// </summary>
-        int max_cached_lines;
+        int maxCachedLines;
 
         /// <summary>
         /// The reader.
@@ -21,23 +22,36 @@ namespace hl2api {
         /// Gets the max cached lines.
         /// </summary>
         /// <value>The max cached lines.</value>
-        public int MaxCachedLines => max_cached_lines;
+        public int MaxCachedLines => maxCachedLines;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="T:hl2api.Cache"/> class.
         /// </summary>
         /// <param name="data_stream">Data stream.</param>
-        /// <param name="max_cached_lines">Max cached lines.</param>
-        protected Cache (Stream data_stream, int max_cached_lines) {
-            this.max_cached_lines = max_cached_lines;
+        /// <param name="maxCachedLines">Max cached lines.</param>
+        protected FlatStorage (Stream data_stream, int maxCachedLines) {
+            this.maxCachedLines = maxCachedLines;
             reader = new StreamReader (data_stream);
+        }
+
+        /// <summary>
+        /// Creates a new flat storage from the specified file.
+        /// </summary>
+        /// <returns>The file.</returns>
+        /// <param name="path">Path.</param>
+        /// <param name="maxCachedLines">Max cached lines.</param>
+        public static FlatStorage FromFile (string path, int maxCachedLines) {
+            return new FlatStorage (File.OpenRead (path), maxCachedLines);
         }
 
         /// <summary>
         /// Gets all items in the cache.
         /// </summary>
+        [MethodImpl (MethodImplOptions.AggressiveInlining)]
         public IEnumerator<string> All () {
-            yield return reader.ReadLine ();
+            while (!reader.EndOfStream) {
+                yield return reader.ReadLine ();
+            }
         }
 
         /// <summary>
@@ -89,6 +103,22 @@ namespace hl2api {
         /// collector can reclaim the memory that the <see cref="T:hl2api.Cache"/> was occupying.</remarks>
         public void Dispose () {
             reader.Dispose ();
+        }
+
+        /// <summary>
+        /// Gets the enumerator.
+        /// </summary>
+        /// <returns>The enumerator.</returns>
+        public IEnumerator<string> GetEnumerator () {
+            return All ();
+        }
+
+        /// <summary>
+        /// Gets the enumerator.
+        /// </summary>
+        /// <returns>The enumerator.</returns>
+        IEnumerator IEnumerable.GetEnumerator () {
+            return All ();
         }
     }
 }
