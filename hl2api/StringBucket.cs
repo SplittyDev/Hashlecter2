@@ -9,14 +9,9 @@ namespace hl2api {
     public class StringBucket : IEnumerable<string>, IDisposable {
 
         /// <summary>
-        /// The max cached lines.
-        /// </summary>
-        int maxCachedLines;
-
-        /// <summary>
         /// The reader.
         /// </summary>
-        protected StreamReader reader;
+        readonly StreamReader reader;
 
         /// <summary>
         /// Whether the stream has reached its end.
@@ -37,6 +32,7 @@ namespace hl2api {
         /// </summary>
         /// <returns>The file.</returns>
         /// <param name="path">Path.</param>
+        [MethodImpl (MethodImplOptions.AggressiveInlining)]
         public static StringBucket FromFile (string path) {
             return new StringBucket (File.OpenRead (path));
         }
@@ -45,9 +41,12 @@ namespace hl2api {
         /// Gets all items in the cache.
         /// </summary>
         [MethodImpl (MethodImplOptions.AggressiveInlining)]
-        public IEnumerator<string> All () {
-            while (!reader.EndOfStream) {
-                yield return reader.ReadLine ();
+        IEnumerator<string> All () {
+            while (true) {
+                var line = reader.ReadLine ();
+                if (line == null)
+                    yield break;
+                yield return line;
             }
         }
 
@@ -77,32 +76,10 @@ namespace hl2api {
         }
 
         /// <summary>
-        /// Gets the next item in the cache.
-        /// </summary>
-        public async Task<string> NextAsync () {
-            return await reader.ReadLineAsync ();
-        }
-
-        /// <summary>
-        /// Gets the next <paramref name="n"/> items in the cache.
-        /// </summary>
-        /// <param name="n">N.</param>
-        public async Task<Tuple<int, string[]>> NextAsync (int n) {
-            var buf = new string[n];
-            var i = 0;
-            for (; i < n; i++) {
-                var str = await reader.ReadLineAsync ();
-                if (str == null)
-                    break;
-                buf[i] = str;
-            }
-            return new Tuple<int, string[]> (i, buf);
-        }
-
-        /// <summary>
         /// Gets the enumerator.
         /// </summary>
         /// <returns>The enumerator.</returns>
+        [MethodImpl (MethodImplOptions.AggressiveInlining)]
         public IEnumerator<string> GetEnumerator () {
             return All ();
         }
@@ -111,6 +88,7 @@ namespace hl2api {
         /// Gets the enumerator.
         /// </summary>
         /// <returns>The enumerator.</returns>
+        [MethodImpl (MethodImplOptions.AggressiveInlining)]
         IEnumerator IEnumerable.GetEnumerator () {
             return All ();
         }

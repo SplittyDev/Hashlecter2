@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,96 +11,82 @@ namespace hl2test {
     [TestFixture]
     public class StringBucket {
 
+        readonly Stopwatch watch = new Stopwatch ();
+
+        const string FILENAME = @"dict/rockyou.txt";
+        const int LINES = 14344391;
+        const int COUNT = 4096;
+
+        void Report () {
+            watch.Stop ();
+            Console.WriteLine ($"{new StackFrame (1).GetMethod ().Name}: {watch.ElapsedMilliseconds}ms");
+            watch.Reset ();
+        }
+
         [Test]
         public void Enumerator () {
-            const string FILENAME = @"dict/cain.txt";
             if (!File.Exists (FILENAME)) {
                 Assert.Ignore ();
                 return;
             }
             var lines = 0;
             var cache = api.StringBucket.FromFile (FILENAME);
+            watch.Start ();
             foreach (var str in cache) {
                 ++lines;
             }
-            Assert.AreEqual (306706, lines);
+            Report ();
+            Assert.AreEqual (LINES, lines);
         }
 
         [Test]
         public void EnumeratorParallel () {
-            const string FILENAME = @"dict/cain.txt";
             if (!File.Exists (FILENAME)) {
                 Assert.Ignore ();
                 return;
             }
             var lines = 0;
             var cache = api.StringBucket.FromFile (FILENAME);
+            watch.Start ();
             Parallel.ForEach (cache, _ => {
                 Interlocked.Increment (ref lines);
             });
-            Assert.AreEqual (306706, lines);
+            Report ();
+            Assert.AreEqual (LINES, lines);
         }
 
         [Test]
         public void Next_A () {
-            const string FILENAME = @"dict/cain.txt";
             if (!File.Exists (FILENAME)) {
                 Assert.Ignore ();
                 return;
             }
             var lines = 0;
             var cache = api.StringBucket.FromFile (FILENAME);
-            while (!cache.EndOfStream) {
-                cache.Next ();
+            string str;
+            watch.Start ();
+            while ((str = cache.Next ()) != null) {
                 ++lines;
             }
-            Assert.AreEqual (306706, lines);
+            Report ();
+            Assert.AreEqual (LINES, lines);
         }
 
         [Test]
         public void Next_B () {
-            const string FILENAME = @"dict/cain.txt";
             if (!File.Exists (FILENAME)) {
                 Assert.Ignore ();
                 return;
             }
             var lines = 0;
             var cache = api.StringBucket.FromFile (FILENAME);
-            while (!cache.EndOfStream) {
-                lines += cache.Next (128).Item1;
+            Tuple<int, string[]> data;
+            watch.Start ();
+            while ((data = cache.Next (COUNT)).Item1 > 0) {
+                lines += data.Item1;
             }
-            Assert.AreEqual (306706, lines);
-        }
-
-        [Test]
-        public async void NextAsync_A () {
-            const string FILENAME = @"dict/cain.txt";
-            if (!File.Exists (FILENAME)) {
-                Assert.Ignore ();
-                return;
-            }
-            var lines = 0;
-            var cache = api.StringBucket.FromFile (FILENAME);
-            while (!cache.EndOfStream) {
-                await cache.NextAsync ();
-                ++lines;
-            }
-            Assert.AreEqual (306706, lines);
-        }
-
-        [Test]
-        public async void NextAsync_B () {
-            const string FILENAME = @"dict/cain.txt";
-            if (!File.Exists (FILENAME)) {
-                Assert.Ignore ();
-                return;
-            }
-            var lines = 0;
-            var cache = api.StringBucket.FromFile (FILENAME);
-            while (!cache.EndOfStream) {
-                lines += (await cache.NextAsync (128)).Item1;
-            }
-            Assert.AreEqual (306706, lines);
+            Report ();
+            Assert.AreEqual (LINES, lines);
         }
     }
 }
