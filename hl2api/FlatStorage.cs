@@ -19,18 +19,16 @@ namespace hl2api {
         protected StreamReader reader;
 
         /// <summary>
-        /// Gets the max cached lines.
+        /// Whether the stream has reached its end.
         /// </summary>
-        /// <value>The max cached lines.</value>
-        public int MaxCachedLines => maxCachedLines;
+        /// <value><c>true</c> if the stream has reached its end.</value>
+        public bool EndOfStream => reader.EndOfStream;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="T:hl2api.Cache"/> class.
         /// </summary>
         /// <param name="data_stream">Data stream.</param>
-        /// <param name="maxCachedLines">Max cached lines.</param>
-        protected FlatStorage (Stream data_stream, int maxCachedLines) {
-            this.maxCachedLines = maxCachedLines;
+        protected FlatStorage (Stream data_stream) {
             reader = new StreamReader (data_stream);
         }
 
@@ -39,9 +37,8 @@ namespace hl2api {
         /// </summary>
         /// <returns>The file.</returns>
         /// <param name="path">Path.</param>
-        /// <param name="maxCachedLines">Max cached lines.</param>
-        public static FlatStorage FromFile (string path, int maxCachedLines) {
-            return new FlatStorage (File.OpenRead (path), maxCachedLines);
+        public static FlatStorage FromFile (string path) {
+            return new FlatStorage (File.OpenRead (path));
         }
 
         /// <summary>
@@ -67,12 +64,16 @@ namespace hl2api {
         /// </summary>
         /// <param name="n">N.</param>
         [MethodImpl (MethodImplOptions.AggressiveInlining)]
-        public string[] Next (int n) {
+        public Tuple<int, string[]> Next (int n) {
             var buf = new string[n];
-            for (var i = 0; i < n; i++) {
-                buf[i] = reader.ReadLine ();
+            var i = 0;
+            for (; i < n; i++) {
+                var str = reader.ReadLine ();
+                if (str == null)
+                    break;
+                buf[i] = str;
             }
-            return buf;
+            return new Tuple<int, string[]> (i, buf);
         }
 
         /// <summary>
@@ -86,23 +87,16 @@ namespace hl2api {
         /// Gets the next <paramref name="n"/> items in the cache.
         /// </summary>
         /// <param name="n">N.</param>
-        public async Task<string[]> NextAsync (int n) {
+        public async Task<Tuple<int, string[]>> NextAsync (int n) {
             var buf = new string[n];
-            for (var i = 0; i < n; i++) {
-                buf[i] = await reader.ReadLineAsync ();
+            var i = 0;
+            for (; i < n; i++) {
+                var str = await reader.ReadLineAsync ();
+                if (str == null)
+                    break;
+                buf[i] = str;
             }
-            return buf;
-        }
-
-        /// <summary>
-        /// Releases all resource used by the <see cref="T:hl2api.Cache"/> object.
-        /// </summary>
-        /// <remarks>Call <see cref="Dispose"/> when you are finished using the <see cref="T:hl2api.Cache"/>. The
-        /// <see cref="Dispose"/> method leaves the <see cref="T:hl2api.Cache"/> in an unusable state. After calling
-        /// <see cref="Dispose"/>, you must release all references to the <see cref="T:hl2api.Cache"/> so the garbage
-        /// collector can reclaim the memory that the <see cref="T:hl2api.Cache"/> was occupying.</remarks>
-        public void Dispose () {
-            reader.Dispose ();
+            return new Tuple<int, string[]> (i, buf);
         }
 
         /// <summary>
@@ -119,6 +113,17 @@ namespace hl2api {
         /// <returns>The enumerator.</returns>
         IEnumerator IEnumerable.GetEnumerator () {
             return All ();
+        }
+
+        /// <summary>
+        /// Releases all resource used by the <see cref="T:hl2api.Cache"/> object.
+        /// </summary>
+        /// <remarks>Call <see cref="Dispose"/> when you are finished using the <see cref="T:hl2api.Cache"/>. The
+        /// <see cref="Dispose"/> method leaves the <see cref="T:hl2api.Cache"/> in an unusable state. After calling
+        /// <see cref="Dispose"/>, you must release all references to the <see cref="T:hl2api.Cache"/> so the garbage
+        /// collector can reclaim the memory that the <see cref="T:hl2api.Cache"/> was occupying.</remarks>
+        public void Dispose () {
+            reader.Dispose ();
         }
     }
 }
