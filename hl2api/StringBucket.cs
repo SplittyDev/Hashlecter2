@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 namespace hl2api {
-    public class FlatStorage : IEnumerable<string>, IDisposable {
+    public class StringBucket : IEnumerable<string>, IDisposable {
 
         /// <summary>
         /// The max cached lines.
@@ -28,17 +28,17 @@ namespace hl2api {
         /// Initializes a new instance of the <see cref="T:hl2api.Cache"/> class.
         /// </summary>
         /// <param name="data_stream">Data stream.</param>
-        protected FlatStorage (Stream data_stream) {
+        protected StringBucket (Stream data_stream) {
             reader = new StreamReader (data_stream);
         }
 
         /// <summary>
-        /// Creates a new flat storage from the specified file.
+        /// Creates a new bucket from the specified file.
         /// </summary>
         /// <returns>The file.</returns>
         /// <param name="path">Path.</param>
-        public static FlatStorage FromFile (string path) {
-            return new FlatStorage (File.OpenRead (path));
+        public static StringBucket FromFile (string path) {
+            return new StringBucket (File.OpenRead (path));
         }
 
         /// <summary>
